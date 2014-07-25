@@ -1,21 +1,85 @@
 package device;
+import java.util.ArrayList;
+
+import netdata.NetEvent;
+import netdata.NetEventListener;
 import device.elements.*;
 
-public interface Device extends Runnable {
+public abstract class Device extends Thread {
+	protected NetIntModule[] NIMs = null;
+	protected String devName = null;
+	protected ArrayList<String> history = null;
+	protected ArrayList<NetEventListener> listeners = null;
+
+	public Device(String name, int mod, int ports){
+		this.devName = name;
+		this.NIMs = new NetIntModule[mod];
+		for (NetIntModule n : NIMs)
+			n = new NetIntModule((short)ports, this);
+		this.history = new ArrayList<String>();
+		this.listeners = new ArrayList<NetEventListener>();
+	}
 	
-	public void run();
-	public void stop();
-	public void resetInterrupted();
-	public boolean isInterrupted();
-	public NetIntModule getNetIntModule(int ind);
-	public String getDeviceName();
-	public void setDeviceName(String name);
-	public String getHistory(int i);
-	public int sizeOfHistory();
-	public int totalPorts();
-	public int totalNIMs();
-	public int amountOfPorts(short ind);
-	public boolean setPortOppo(Port p, short module, short port);
+	@Override
+	public abstract void run();
+	
+	public NetIntModule getNetIntModule(int ind) { return NIMs[ind]; }
+	public String getDeviceName() { return devName; }
+	public void setDeviceName(String name) { this.devName = name; }
+	public String getHistory(int i) { return history.get(i); }
+	public int sizeOfHistory() { return history.size(); }
+	public int totalNIMs() { return NIMs.length; }
+	public int amountOfPorts(short ind) { return NIMs.length; }
+	//public boolean setPortOppo(Port p, short module, short port) { return NIMs[module].setPortOppo(p, port); }
+	public boolean setPortConnection(Connection conn, short module, short port) { return NIMs[module].setConnection(conn, port); }
+
+	public int totalPorts() { 
+		int temp = 0;
+		for (int m = 0; m < NIMs.length; m++){
+			temp += NIMs[m].size();
+		}
+		return temp;
+	}
+	
+	protected void triggerReceiveListener(NetEvent e)
+	{
+		for (NetEventListener l : listeners)
+		{ l.frameReceived(e); }
+	}
+	
+	protected void triggerDropListener(NetEvent e)
+	{
+		for (NetEventListener l : listeners)
+		{ l.frameDropped(e); }
+	}
+	
+	protected void triggerProcessListener(NetEvent e)
+	{
+		for (NetEventListener l : listeners)
+		{ l.frameProcessed(e); }
+	}
+	
+	protected void triggerSentListener(NetEvent e)
+	{
+		for (NetEventListener l : listeners)
+		{ l.frameSent(e); }
+	}
+	
+	public boolean addListener(NetEventListener l){ return listeners.add(l); }
+	public boolean removeListener(NetEventListener l){ return listeners.remove(l); }
+	
+//	public abstract void run();
+//	public void resetInterrupted();
+//	public boolean isInterrupted();
+//	public NetIntModule getNetIntModule(int ind);
+//	public String getDeviceName();
+//	public void setDeviceName(String name);
+//	public String getHistory(int i);
+//	public int sizeOfHistory();
+//	public int totalPorts();
+//	public int totalNIMs();
+//	public int amountOfPorts(short ind);
+//	public boolean setPortOppo(Port p, short module, short port);
 }
 
 //public abstract class Device extends Thread{

@@ -1,10 +1,12 @@
 package netdata;
 
+import netdata.packet.IPv4Packet;
+
 public class PacketMovement {
 	private int dev, port;
-	private Packet pack;
+	private IPv4Packet pack;
 	
-	public PacketMovement(int dev, int port, Packet pack){
+	public PacketMovement(int dev, int port, IPv4Packet pack){
 		this.dev = dev;
 		this.port = port;
 		this.pack = pack;
@@ -13,7 +15,7 @@ public class PacketMovement {
 	public int getDevID() {
 		return dev;
 	}
-	public Packet getPack() {
+	public IPv4Packet getPack() {
 		return pack;
 	}
 	public int getDevPortID(){

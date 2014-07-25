@@ -9,20 +9,13 @@ import device.Device;
 import device.elements.NetIntModule;
 import device.elements.Port;
 
-public class Switch implements Device {
+public class Switch extends Device {
 	private ArrayList<CAMrecord> camTable = null;
-	private NetIntModule[] NIMs = null;
-	private String devName = null;
-	private ArrayList<String> history = null;
 	private short age = 300; // in seconds
-	private boolean interrupted = false;
 	
 	public Switch(String name) {
-		NIMs = new NetIntModule[1];
-		NIMs[1] = new NetIntModule((short) 24, this);
+		super(name, 1, 24);
 		camTable = new ArrayList<CAMrecord>();
-		this.devName = name;
-		this.history = new ArrayList<String>();
 	}
 
 	private void Broadcast(Frame f)
@@ -70,7 +63,8 @@ public class Switch implements Device {
 		{
 			camTable.add(new CAMrecord(f.getSourceMAC(), module, port, age, true));
 		}
-		
+
+		f.getPayload().decTime();
 		if (f.getDestMAC().toUpperCase().equals(MACGenerator.BROADCAST) || !recordExist(f.getDestMAC()))
 		{ Broadcast(f); }
 		else
@@ -83,6 +77,7 @@ public class Switch implements Device {
 		}
 	}
 
+	@Override
 	public void run() {
 		// TODO Auto-generated method stub
 		while(!isInterrupted())
@@ -92,43 +87,13 @@ public class Switch implements Device {
 				{
 					if (NIMs[m].hasFrameOnPort(p))
 					{ ProcessFrame(NIMs[m].takeFrameFromPort(p), m, p); }
+					try {
+						sleep(100);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 				}
 		}
 	}
-
-	public void stop() { interrupted = true; }
-	public void resetInterrupted() { interrupted = false; }
-	public boolean isInterrupted() { return interrupted; } 
-	
-	@Override
-	public NetIntModule getNetIntModule(int ind) { return NIMs[ind]; }
-
-	@Override
-	public String getDeviceName() { return devName; }
-
-	@Override
-	public void setDeviceName(String name) { this.devName = name; }
-
-	@Override
-	public String getHistory(int i) { return history.get(i); }
-
-	@Override
-	public int sizeOfHistory() { return history.size(); }
-
-	@Override
-	public int totalPorts() {
-		int temp = 0;
-		for (int m = 0; m < NIMs.length; m++)
-			temp += NIMs[m].size();
-		return temp;
-	}
-
-	@Override
-	public int totalNIMs() { return NIMs.length; }
-
-	@Override
-	public int amountOfPorts(short ind) { return NIMs[ind].size(); }
-
-	@Override
-	public boolean setPortOppo(Port p, short module, short port) { return NIMs[module].setPortOppo(p, port); }
 }

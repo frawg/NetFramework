@@ -9,6 +9,9 @@ import device.Device;
 import netdata.Frame;
 import netdata.LookupRecord;
 import netdata.PacketMovement;
+import netdata.enums.ProtocolNumbers;
+import netdata.packet.IPv4Packet;
+import netdata.packet.Packet;
 
 public class NetIntModule {
 	private Device parentDevice = null;
@@ -30,6 +33,18 @@ public class NetIntModule {
 		return ports[ind].hasFrame();
 	}
 	
+	public boolean hasAppType(ProtocolNumbers n, int p)
+	{
+		if (ports[p].hasAppPacket(n))
+				return true;
+		return false;
+	}
+	
+	public Packet getAppPacket(ProtocolNumbers n, int p)
+	{
+		return ports[p].getAppPacket(n);
+	}
+	
 	public Frame takeFrameFromPort(int ind){
 		return ports[ind].PollQueue();
 	}
@@ -39,5 +54,11 @@ public class NetIntModule {
 	public IPv4 getIPv4(){ return ip; }
 	public int size(){ return ports.length; }
 	public void portSend(int index, Frame f){ ports[index].SendFrame(f); }
-	public boolean setPortOppo(Port p, short port){ return ports[port].setOppo(p); }
+	public String getPortMAC(int ind) { return ports[ind].getMAC(); } 
+	//public boolean setPortOppo(Port p, short port){ return ports[port].setOppo(p); }
+	public boolean setConnection(Connection p, short port){ return ports[port].setConnection(p); }
+
+	public Frame getAppFrame(ProtocolNumbers n, int i) {
+		return ports[i].getAppFrame(n);
+	}
 }
