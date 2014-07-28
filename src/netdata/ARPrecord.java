@@ -1,18 +1,19 @@
 package netdata;
 
+import java.util.Date;
+
 public class ARPrecord {
 	private String macAdd, ip;
-	private int module, port;
+	private short port;
 	private boolean dynamic;
-	private short TTL;
+	private Date TTL;
 	
-	public ARPrecord(String mac, String ip, int module, int port, short t, boolean b)
+	public ARPrecord(String mac, String ip, short port, int seconds, boolean b)
 	{
 		macAdd = mac;
 		this.ip = ip;
-		this.module = module;
 		this.port = port;
-		TTL = t;
+		TTL = new Date(System.currentTimeMillis() + (seconds * 1000));
 		dynamic = b;
 	}
 
@@ -20,19 +21,33 @@ public class ARPrecord {
 	public void setMac(String mac) { this.macAdd = mac; }
 	public String getIP(){ return ip; }
 	public void setIP(String ip) { this.ip = ip; }
-	public int getModule() { return module; }
 	public int getPort() { return port; }
-	
-	public boolean decTTL()
+	public boolean UpdateAge(int seconds)
 	{
+		if (!isExpired() && dynamic)
+		{
+			TTL = new Date(System.currentTimeMillis() + (seconds * 1000));
+			return true;
+		}
+		else if (!dynamic)
+			return true;
+		else
+			return false;
+	}
+	
+	public boolean isExpired(){
 		if (dynamic)
 		{
-			TTL =- 1;
-			if (TTL > 0)
+			if (TTL.before(new Date(System.currentTimeMillis())))
 			{
 				return true;
 			}
+			else 
+				return false;
 		}
-		return false;
+		else
+		{
+			return false;
+		}
 	}
 }

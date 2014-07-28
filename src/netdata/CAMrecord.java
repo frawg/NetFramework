@@ -1,34 +1,49 @@
 package netdata;
 
+import java.util.Date;
+
 public class CAMrecord {
 	private String macAdd;
-	private short interMod, portNum;
+	private short portNum;
 	private boolean dynamic;
-	private short TTL;
+	private Date TTL;
 	
-	public CAMrecord(String mac, short inter, short port, short t, boolean b)
+	public CAMrecord(String mac, short port, int seconds, boolean b)
 	{
 		macAdd = mac;
-		interMod = inter;
 		portNum = port;
-		TTL = t;
+		TTL = new Date(System.currentTimeMillis() + (seconds * 1000));
 		dynamic = b;
 	}
 	
-	public short getIntMod(){ return interMod; }
 	public short getPort(){ return portNum; }
 	public String getMacAdd(){ return macAdd; }
-	
-	public boolean decTTL()
+	public boolean UpdateAge(int seconds)
 	{
+		if (!isExpired() && dynamic)
+		{
+			TTL = new Date(System.currentTimeMillis() + (seconds * 1000));
+			return true;
+		}
+		else if (!dynamic)
+			return true;
+		else
+			return false;
+	}
+	
+	public boolean isExpired(){
 		if (dynamic)
 		{
-			TTL =- 1;
-			if (TTL > 0)
+			if (TTL.before(new Date(System.currentTimeMillis())))
 			{
 				return true;
 			}
+			else 
+				return false;
 		}
-		return false;
+		else
+		{
+			return false;
+		}
 	}
 }
