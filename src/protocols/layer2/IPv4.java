@@ -1,4 +1,4 @@
-package protocols;
+package protocols.layer2;
 
 public class IPv4 {
 	private String address, gateway, subnet;
