@@ -2,41 +2,71 @@ package device.enddevices;
 import java.util.ArrayList;
 
 import netdata.Frame;
+import netdata.FrameMovement;
 import device.Device;
-import device.elements.NetIntModule;
 import device.elements.Port;
 
 public class Hub extends Device {
 	
-	public Hub(String name){
-		super(name, 8, 1);
+	public Hub(String name, int bufferSize){
+		super(name, 10, bufferSize);
+	}
+
+	@Override
+	protected void initPorts(int bufferSize) {
+		for (int i = 0; i < ports.length; i++)
+		{
+			ports[i] = new Port(this, bufferSize, (short) i) {
+				
+				@Override
+				public void frameIsNotForThis(Frame f) {
+					// TODO Auto-generated method stub
+					//receiveFrame(f);
+					receiveFrame(f, getIndex());
+				}
+				@Override
+				public void frameIsForThis(Frame f) {} //there will never be a frame meant for this.
+			};
+		}
 	}
 	
 	@Override
 	public void run() {
 		// TODO Auto-generated method stub
+		super.run();
 		while(!isInterrupted())
 		{
-			for (short m = 0; m < NIMs.length; m++)
-				for (short p = 0; p < NIMs[m].size(); p++)
-				{
-					if (NIMs[m].hasFrameOnPort(p))
-					{ ProcessFrame(NIMs[m].takeFrameFromPort(p), m, p); }
-					try {
-						sleep(100);
-					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-				}
+			FrameMovement fm = null;
+			try {
+				fm = incoming.take();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			if (fm != null)
+			{
+				ProcessFrame(fm.getFrame(), fm.getPortIndex());
+			}
 		}
 	}
 
-	private void ProcessFrame(Frame f, short module, short port) {
-		f.getPayload().decTime();
-		for (int m = 0; m < NIMs.length; m++)
-			for (int p = 0; p < NIMs[m].size(); p++)
-				if (m != module && p != port)
-					NIMs[m].portSend(p, f);
+	private synchronized void ProcessFrame(Frame f, short port) {
+		for (int i = 0; i < ports.length; i++)
+		{
+			if (ports[i] != null && i != port)
+				ports[i].sendFrame(f);
+		}
+	}
+
+	@Override
+	public boolean setPortConnection(int i, Port p) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public int totalPorts() {
+		// TODO Auto-generated method stub
+		return 0;
 	}
 }

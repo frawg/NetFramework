@@ -2,11 +2,11 @@ package device.enddevices;
 
 import java.util.ArrayList;
 
-import protocols.MACGenerator;
+import protocols.layer2.MACGenerator;
 import netdata.CAMrecord;
 import netdata.Frame;
+import netdata.FrameMovement;
 import device.Device;
-import device.elements.NetIntModule;
 import device.elements.Port;
 
 public class Switch extends Device {
@@ -14,86 +14,160 @@ public class Switch extends Device {
 	private short age = 300; // in seconds
 	
 	public Switch(String name) {
-		super(name, 1, 24);
+		super(name, 24, 10);
 		camTable = new ArrayList<CAMrecord>();
 	}
 
-	private void Broadcast(Frame f)
-	{
-		for (int m = 0; m < NIMs.length; m++)
+	@Override
+	protected void initPorts(int bufferSize) {
+		// TODO Auto-generated method stub
+		for (int i = 0; i < ports.length; i++)
 		{
-			for (int p = 0; p < NIMs[m].size(); p++)
-			{
-				if (!recordExist(f.getSourceMAC(), m, p))
-				{
-					NIMs[m].portSend(p, f);
-					break;
+			ports[i] = new Port(this, bufferSize, (short)i) {
+				
+				@Override
+				public void frameIsNotForThis(Frame f) {
+					//updateCAMRecord(f.getSourceMAC(), getIndex());
+					//ProcessFrame(f, getIndex());
+					receiveFrame(f, getIndex());
 				}
-			}
+				@Override
+				public void frameIsForThis(Frame f) {
+					// insert relevant protocol handlers
+				}
+			};
 		}
 	}
 	
-	private boolean recordExist(String mac, int module, int port)
+	private void Broadcast(Frame f, int sourcePort)
+	{
+		for (int m = 0; m < ports.length; m++)
+		{
+			if (m != sourcePort)
+				ports[m].sendFrame(f);
+		}
+	}
+	
+	private CAMrecord recordExist(String mac, int port) // mainly used for looking up existing records on source
 	{
 		for (int i = 0; i < camTable.size(); i++)
 		{
-			if (!camTable.get(i).decTTL())
-				camTable.remove(i);
-			else 
-				if ((camTable.get(i).getIntMod() == module) && (camTable.get(i).getPort() == port)
-							&& camTable.get(i).getMacAdd().toUpperCase().equals(mac.toUpperCase()))
-				return true;
+			if ( (camTable.get(i).getPort() == port) // if the port matches
+						&& camTable.get(i).getMacAdd().toUpperCase().equals(mac.toUpperCase()) // and the mac address matches
+						 && !camTable.get(i).isExpired() ) // and has not expired
+				return camTable.get(i); // this is the record
 		}
-		return false;
+		return null; // none found
 	}
 	
 	private boolean recordExist(String mac)
 	{
 		for (int i = 0; i < camTable.size(); i++)
 		{
-			if (camTable.get(i).getMacAdd().toUpperCase().equals(mac.toUpperCase()))
-				return true;
+			if ( camTable.get(i).getMacAdd().toUpperCase().equals(mac.toUpperCase()) // if the mac matches
+					&& !camTable.get(i).isExpired() ) // and has not expired
+				return true; // a record has been found
 		}
-		return false;
+		return false; // nope, no record
 	}
 	
-	private void ProcessFrame(Frame f, short module, short port) {
-		// TODO Auto-generated method stub
-		if (!recordExist(f.getSourceMAC(), module, port) && (!f.getSourceMAC().toUpperCase().equals(MACGenerator.BROADCAST)))
-		{
-			camTable.add(new CAMrecord(f.getSourceMAC(), module, port, age, true));
-		}
-
-		f.getPayload().decTime();
+	private /*synchronized*/ void ProcessFrame(Frame f, short port) {
 		if (f.getDestMAC().toUpperCase().equals(MACGenerator.BROADCAST) || !recordExist(f.getDestMAC()))
-		{ Broadcast(f); }
+		{ Broadcast(f, port); }
 		else
 		{
-			for (int c = 0; c < camTable.size(); c++)
+			cleanCAM(); // remove expired records
+			for (int i = 0; i < camTable.size(); i++)
 			{
-				if (camTable.get(c).getMacAdd().toUpperCase().equals(f.getDestMAC()))
-				{ NIMs[camTable.get(c).getIntMod()].portSend(camTable.get(c).getPort(), f); }
+				if (camTable.get(i).getMacAdd().equals(f.getDestMAC()))
+				{
+					ports[camTable.get(i).getPort()].sendFrame(f);
+				}
 			}
 		}
 	}
 
 	@Override
 	public void run() {
+		for (Port p : ports)
+			p.run();
 		// TODO Auto-generated method stub
 		while(!isInterrupted())
 		{
-			for (short m = 0; m < NIMs.length; m++)
-				for (short p = 0; p < NIMs[m].size(); p++)
-				{
-					if (NIMs[m].hasFrameOnPort(p))
-					{ ProcessFrame(NIMs[m].takeFrameFromPort(p), m, p); }
-					try {
-						sleep(100);
-					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-				}
+			FrameMovement fm = null;
+			try {
+				fm = incoming.take();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			if (fm != null)
+			{
+				updateCAMRecord(fm.getFrame().getSourceMAC(), fm.getPortIndex()); // update the source and port
+				
+				ProcessFrame(fm.getFrame(), fm.getPortIndex());
+			}
+//			for (short m = 0; m < NIMs.length; m++)
+//				for (short p = 0; p < NIMs[m].size(); p++)
+//				{
+//					if (NIMs[m].hasFrameOnPort(p))
+//					{ ProcessFrame(NIMs[m].takeFrameFromPort(p), m, p); }
+//					try {
+//						sleep(100);
+//					} catch (InterruptedException e) {
+//						// TODO Auto-generated catch block
+//						e.printStackTrace();
+//					}
+//				}
 		}
 	}
+
+	@Override
+	public Port getPort(int i) {
+		if (i >= ports.length)
+			return null;
+		else
+			return ports[i];
+	}
+
+	@Override
+	public boolean setPortConnection(int i, Port p) {
+		if (i >= ports.length)
+			return false;
+		else
+		{
+			return ports[i].setOppo(p);
+		}
+	}
+
+	@Override
+	public int totalPorts() {
+		// TODO Auto-generated method stub
+		return ports.length;
+	}
+	
+	private synchronized void updateCAMRecord(String mac, int port){
+		if (!mac.toUpperCase().equals(MACGenerator.BROADCAST)) // if the source is not illegal
+		{
+			CAMrecord r = recordExist(mac, port); // check if record exist
+			if (r != null) // if it does
+			{
+				r.UpdateAge(age); // update the age of it
+			}
+			else
+				camTable.add(new CAMrecord(mac, (short)port, age, true)); // if it doesn't, add the record in
+		}
+	}
+	
+	private void cleanCAM()
+	{
+		for (CAMrecord r : camTable)
+		{
+			if (r.isExpired())
+				camTable.remove(r);
+		}
+	}
+
+	private int getAgingMilliSec() { return age * 1000; }
 }
