@@ -28,6 +28,7 @@ public abstract class Port extends Thread {
 		this.bufferSize = bufferSize;
 		this.index = index;
 		parentDevice = p;	
+		macAdd = MACGenerator.BROADCAST;
 		speed = 100000;
 	}
 	

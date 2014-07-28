@@ -34,7 +34,7 @@ public abstract class Device extends Thread {
 	{
 		for (Port p : ports)
 		{
-			p.run();
+			p.start();
 		}
 	}
 	@Override
