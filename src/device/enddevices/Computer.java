@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import protocols.layer2.MACGenerator;
 import netdata.ARPrecord;
 import netdata.Frame;
+import netdata.FrameMovement;
 import netdata.NetEvent;
 import netdata.NetEvent.ACTION;
 import netdata.packet.ARPpacket;
@@ -37,7 +38,7 @@ public class Computer extends Device {
 				}
 				@Override
 				public void frameIsForThis(Frame f) {
-					
+					receiveFrame(f, getIndex());
 				}
 			};
 		}
@@ -111,80 +112,182 @@ public class Computer extends Device {
 				new ARPpacket(ports[0].getIPv4().getAddress(), ip, ports[0].getMacAdd(), mac, Frame.IPv4, ARPpacket.OPERATION.REPLY, (short)255));
 	}
 	
-	public void ping(String destination) throws InterruptedException
+	public void ping(final String destination)
 	{
+		Thread t = new Thread(new Runnable(){
+			@Override
+			public void run() {
+				try {
+					System.out.println("Ping started"); 
+					runPing(destination);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} 
+			}
+		});
+			
+//				Frame f = null;
+//				int time = 0;
+//				if (IPtoMAC(destination) == null)
+//					arpRequest(destination);
+//				do {
+//					if (IPtoMAC(destination) != null)
+//					{
+//						f = ports[0].sendFrame(IPtoMAC(destination), Frame.IPv4, new ICMPpacket(ports[0].getIPv4().getAddress(), destination, ICMPpacket.Type.ECHO, 0));
+//					}
+//					else
+//					{
+//						time += 1;
+//					}
+//					try {
+//						sleep(10);
+//					} catch (InterruptedException e) {
+//						// TODO Auto-generated catch block
+//						e.printStackTrace();
+//					}
+//				} while (time < 64);
+//				if (f != null && time < 64)
+//				{
+//					triggerSentListener(new NetEvent(temp, f, "IPv4 - ICMP", ACTION.SENT));
+//					//Frame pack = NIMs[0].getAppFrame(ProtocolNumbers.ICMP, 0);
+//					f = null;
+//					do {
+//						synchronized (getCurrent()) {
+//							try {
+//								getCurrent().wait();
+//							} catch (InterruptedException e) {
+//								// TODO Auto-generated catch block
+//								e.printStackTrace();
+//							}
+//						}
+//						f = getCurrent();
+//						if (f.getPayload() instanceof ICMPpacket && f.getDestMAC().equals(ports[0].getMacAdd()) 
+//								&& f.getPayload().getDestIP().equals(ports[0].getIPv4().getAddress()))
+//						{
+//							//((ICMPpacket) pack).getType();
+//							triggerReceiveListener(new NetEvent(temp, f, "IPv4 - ICMP", ACTION.RECEIVED));
+//						}
+//						else
+//						{
+//							f = null;
+//							time += 1;
+//						}
+//						try {
+//							sleep(10);
+//						} catch (InterruptedException e) {
+//							// TODO Auto-generated catch block
+//							e.printStackTrace();
+//						}
+//					} while (time < 64 && f == null);
+//				}
+//				else
+//				{
+//					triggerDropListener(new NetEvent(temp, f, "IPv4 - ICMP", ACTION.DROPPED));
+//				}
+//			}
+//		});
+		t.start();
+		System.out.println("Ping ran");
+	}
+	
+	private void runPing(String destination) throws InterruptedException
+	{
+		System.out.println("Ping process started"); 
 		Frame f = null;
-		int i = arpCache.size();
 		int time = 0;
 		if (IPtoMAC(destination) == null)
 			arpRequest(destination);
+		System.out.println("ARP request over");
 		do {
+			System.out.println("Waiting for arp reply");
 			if (IPtoMAC(destination) != null)
 			{
-				f = ports[0].sendFrame(IPtoMAC(destination), Frame.IPv4, new ICMPpacket(ports[0].getIPv4().getAddress(), destination, ICMPpacket.Type.ECHO, 0));
+				f = ports[0].sendFrame(IPtoMAC(destination), Frame.IPv4,
+						new ICMPpacket(ports[0].getIPv4().getAddress(), destination, ICMPpacket.Type.ECHO, 0));
+				System.out.println("Ping sent");
 			}
 			else
 			{
-				i = arpCache.size();
 				time += 1;
 			}
-			sleep(10);
-		} while (time < 64 && arpCache.size() > i);
+			try {
+				sleep(10);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		} while (time < 64);
 		if (f != null && time < 64)
 		{
 			triggerSentListener(new NetEvent(this, f, "IPv4 - ICMP", ACTION.SENT));
 			//Frame pack = NIMs[0].getAppFrame(ProtocolNumbers.ICMP, 0);
 			f = null;
 			do {
-				f = current;
+				synchronized (getCurrent()) {
+					try {
+						System.out.println("Awaiting ICMP reply");
+						getCurrent().wait();
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+				f = getCurrent();
+				System.out.println("Frame received");
 				if (f.getPayload() instanceof ICMPpacket && f.getDestMAC().equals(ports[0].getMacAdd()) 
 						&& f.getPayload().getDestIP().equals(ports[0].getIPv4().getAddress()))
 				{
 					//((ICMPpacket) pack).getType();
 					triggerReceiveListener(new NetEvent(this, f, "IPv4 - ICMP", ACTION.RECEIVED));
-					if (current == f)
-					{
-						//request next frame to be processed
-					}
+					System.out.println("ICMP reply received");
 				}
 				else
 				{
 					f = null;
 					time += 1;
 				}
-				sleep(10);
+				try {
+					sleep(10);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			} while (time < 64 && f == null);
 		}
 		else
 		{
-			//triggerDropListener(new NetEvent(this, f, EtherType.IPv4.toString() + " " + ProtocolNumbers.ICMP.toString(), ACTION.DROPPED));
-			//Time out;
+			System.out.println("Timeout");
+			triggerDropListener(new NetEvent(this, f, "IPv4 - ICMP", ACTION.DROPPED));
 		}
 	}
 	
 	private void ProcessFrame(Frame f, /*int m,*/ int p){
+		System.out.println("Processing frame...");
 		if (f.getEtherType() == Frame.IPv4)
 		{
+			System.out.println("Frame is IPv4");
+			triggerReceiveListener(new NetEvent(this, f, "IPv4", ACTION.RECEIVED));
 			if (((IPv4Packet)f.getPayload()).getProtocol() == Packet.ICMP)
 			{
+				System.out.println("Packet is IPv4 ICMP");
 				if (((ICMPpacket)f.getPayload()).getType() == ICMPpacket.Type.ECHO)
 				{
-					//NIMs[0].portSend(0, new Frame(NIMs[0].getMacAdd(), f.getSourceMAC(), EtherType.IPv4, new ICMPpacket(NIMs[0].getIPv4().getAddress(), f.getPayload().getSourceIP(), Type.ECHO_REPLY, 0)));
+					System.out.println("This is a ping request, generating reply.");
+					ports[p].sendFrame(f.getSourceMAC(), f.getEtherType(),
+							new ICMPpacket(ports[p].getIPv4().getAddress(), f.getPayload().getSourceIP(), ICMPpacket.Type.ECHO_REPLY, 0));
 				}
-				//else if (((ICMPpacket)f.getPayload()).getType() == ICMPpacket.Type.ECHO_REPLY)
-				//{
-					//triggerReceiveListener(e);
-				//}
 			}
 		}
 		else if (f.getEtherType() == Frame.ARP)
 		{
+			System.out.println("Frame is ARP");
 			if (f.getPayload() instanceof ARPpacket)
 			{ 
 				ARPpacket pack = (ARPpacket) f.getPayload();
 				if (pack.getProtocolType() == Frame.IPv4)
 				{
-					//todo
+					System.out.println("ARP IPv4");
 					if (!cacheContains(f.getPayload().getSourceIP(), f.getSourceMAC()))
 						if (hasIP(f.getPayload().getSourceIP()))
 						{
@@ -201,11 +304,15 @@ public class Computer extends Device {
 					
 					if (pack.getOperation() == ARPpacket.OPERATION.REQUEST)
 					{
-						//arpReply(NIMs[0].getIPv4().getAddress(), NIMs[0].getMacAdd());
+						System.out.println("ARP request");
+						arpReply(f.getPayload().getSourceIP(), f.getSourceMAC());
+
+						triggerReceiveListener(new NetEvent(this, f, "ARP request", ACTION.RECEIVED));
 					}
 					else if (pack.getOperation() == ARPpacket.OPERATION.REPLY)
 					{
-						//triggerReceiveListener(e);
+						System.out.println("ARP reply");
+						triggerReceiveListener(new NetEvent(this, f, "ARP reply", ACTION.RECEIVED));
 					}
 				}
 			}
@@ -216,27 +323,38 @@ public class Computer extends Device {
 	
 	@Override
 	public void run() {
+		super.run();
 		// TODO Auto-generated method stub
 		while (!isInterrupted())
 		{
-//			for (short m = 0; m < NIMs.length; m++)
-//				for (short p = 0; p < NIMs[m].size(); p++)
+			FrameMovement fm = null;
+			try {
+				fm = incoming.take();
+				System.out.println("There is an incoming frame");
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			if (fm != null){
+				current = fm.getFrame();
+//				if (!cacheContains(current.getPayload().getSourceIP(), current.getSourceMAC()))
 //				{
-//					if (NIMs[m].hasFrameOnPort(p))
-//					{ ProcessFrame(NIMs[m].takeFrameFromPort(p), m, p); }
+//					arpCache.add(new ARPrecord(current.getSourceMAC(), current.getPayload().getSourceIP(), 
+//							fm.getPortIndex(), 300, true));
 //				}
-//			try {
-//				sleep(100);
-//			} catch (InterruptedException e) {
-//				// TODO Auto-generated catch block
-//				e.printStackTrace();
-//			}
+				getCurrent().notifyAll();
+				System.out.println("Notifying all waiting processes");
+				ProcessFrame(current, fm.getPortIndex());
+			}			
+			for (Thread t : threads)
+			{
+				if (!t.isAlive())
+					threads.remove(t);
+			}
 		}
 	}
 
 	@Override
-	public boolean setPortConnection(int i, Port p) {
-		// TODO Auto-generated method stub
-		return ports[0].setOppo(p);
-	}
+	public boolean setPortConnection(int i, Port p) { return ports[0].setOppo(p); }
 }

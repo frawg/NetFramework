@@ -9,12 +9,12 @@ import netdata.NetEventListener;
 import device.elements.*;
 
 public abstract class Device extends Thread {
-//	protected NetIntModule[] NIMs = null;
 	protected LinkedBlockingQueue<FrameMovement> incoming = null;
 	protected String devName = null;
 	protected ArrayList<String> history = null;
 	protected ArrayList<NetEventListener> listeners = null;
 	protected Port[] ports = null;
+	protected ArrayList<Thread> threads = null;
 
 	public Device(String name/*, int mod*/, int ports, int bufferSize){
 		this.devName = name;
@@ -22,6 +22,7 @@ public abstract class Device extends Thread {
 		this.history = new ArrayList<String>();
 		this.listeners = new ArrayList<NetEventListener>();
 		incoming = new LinkedBlockingQueue<FrameMovement>(bufferSize);
+		threads = new ArrayList<Thread>();
 		
 		initPorts(bufferSize);
 	}
@@ -42,6 +43,12 @@ public abstract class Device extends Thread {
 		super.interrupt();
 		for (Port p : ports)
 			p.interrupt();
+	}
+	
+	public void interrupt(int sec) throws InterruptedException
+	{
+		sleep(sec * 1000);
+		this.interrupt();
 	}
 	
 	public String getDeviceName() { return devName; }

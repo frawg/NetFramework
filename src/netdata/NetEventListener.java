@@ -1,8 +1,8 @@
 package netdata;
 
-public interface NetEventListener {
-	public void frameReceived(NetEvent e);
-	public void frameDropped(NetEvent e);
-	public void frameProcessed(NetEvent e);
-	public void frameSent(NetEvent e);
+public abstract class NetEventListener {
+	public abstract void frameReceived(NetEvent e);
+	public abstract void frameDropped(NetEvent e);
+	public abstract void frameProcessed(NetEvent e);
+	public abstract void frameSent(NetEvent e);
 }

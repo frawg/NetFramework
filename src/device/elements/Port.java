@@ -28,6 +28,7 @@ public abstract class Port extends Thread {
 		this.bufferSize = bufferSize;
 		this.index = index;
 		parentDevice = p;	
+		speed = 100000;
 	}
 	
 	public void run()
@@ -73,9 +74,11 @@ public abstract class Port extends Thread {
 	public abstract void frameIsNotForThis(Frame f);
 	
 	public synchronized void ReceiveFrame(Frame f){
+		System.out.println("Frame " + f.getEtherType() + " receive");
 		if (recvQueue.size() < bufferSize)
 			if (!recvQueue.offer(f))
 			{
+				System.out.println("Frame " + f.getEtherType() + " dropped at port");
 				// frame is dropped 
 			}
 	}
@@ -107,10 +110,11 @@ public abstract class Port extends Thread {
 	
 	public void sendFrame(Frame f)
 	{
+		System.out.println("Frame prep to send");
 		sendQueue.offer(f);
 	}
 	
-	private int sleepTime() { return (int)((double)(64 + 20) / (double)speed * 1000 * 1000 * 1000); } // convert to micro then nano
+	private int sleepTime() { return (int)(((double)(64 + 20) / (double)speed) * 1000 * 1000 * 1000); } // convert to micro then nano
 	
 //	public boolean setConnection(Connection conn){
 //		if (isConnected())

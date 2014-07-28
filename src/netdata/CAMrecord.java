@@ -1,12 +1,13 @@
 package netdata;
 
+import java.util.Calendar;
 import java.util.Date;
 
 public class CAMrecord {
 	private String macAdd;
 	private short portNum;
 	private boolean dynamic;
-	private Date TTL;
+	private Date TTL, sent;
 	
 	public CAMrecord(String mac, short port, int seconds, boolean b)
 	{
@@ -14,6 +15,7 @@ public class CAMrecord {
 		portNum = port;
 		TTL = new Date(System.currentTimeMillis() + (seconds * 1000));
 		dynamic = b;
+		sent = null;
 	}
 	
 	public short getPort(){ return portNum; }
@@ -30,6 +32,16 @@ public class CAMrecord {
 		else
 			return false;
 	}
+
+	public boolean isSent()
+	{
+		if (sent == null)
+			return false;
+		if ((sent.getTime() - System.currentTimeMillis()) < (5 * 1000)
+				&& (sent.getTime() - System.currentTimeMillis()) > 0)
+			return true;
+		return false;
+	}
 	
 	public boolean isExpired(){
 		if (dynamic)
@@ -44,6 +56,23 @@ public class CAMrecord {
 		else
 		{
 			return false;
+		}
+	}
+	
+	public boolean isTimeForUpdate()
+	{
+		if (!isExpired() && ((TTL.getTime() - System.currentTimeMillis()) < (30 * 1000))
+				&& ((TTL.getTime() - System.currentTimeMillis()) > 10) && !isSent())
+		{
+			return true;
+		}
+		else return false;	
+	}
+	
+	public void toggleSent(){
+		if (!isSent())
+		{
+			sent = new Date(System.currentTimeMillis());
 		}
 	}
 }

@@ -27,8 +27,6 @@ public class Switch extends Device {
 				
 				@Override
 				public void frameIsNotForThis(Frame f) {
-					//updateCAMRecord(f.getSourceMAC(), getIndex());
-					//ProcessFrame(f, getIndex());
 					receiveFrame(f, getIndex());
 				}
 				@Override
@@ -89,8 +87,7 @@ public class Switch extends Device {
 
 	@Override
 	public void run() {
-		for (Port p : ports)
-			p.run();
+		super.run();
 		// TODO Auto-generated method stub
 		while(!isInterrupted())
 		{
@@ -159,6 +156,21 @@ public class Switch extends Device {
 				camTable.add(new CAMrecord(mac, (short)port, age, true)); // if it doesn't, add the record in
 		}
 	}
+	
+//	private synchronized void requestCAMupdate()
+//	{
+//		for (CAMrecord r : camTable)
+//		{
+//			if (r.isTimeForUpdate()) // if the source is not illegal
+//			{
+//				if (!r.isSent())
+//				{
+//					r.getMacAdd();
+//					ports[r.getPort()].sendFrame(new Frame(ports[r.getPort()].getMacAdd(), r.getMacAdd(), ));
+//				}
+//			}
+//		}
+//	}
 	
 	private void cleanCAM()
 	{
