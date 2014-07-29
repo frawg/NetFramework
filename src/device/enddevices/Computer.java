@@ -42,6 +42,7 @@ public class Computer extends Device {
 				}
 			};
 		}
+		super.initPorts(bufferSize);
 	}
 	
 	private String MACtoIP(String mac){
@@ -127,66 +128,6 @@ public class Computer extends Device {
 			}
 		});
 			
-//				Frame f = null;
-//				int time = 0;
-//				if (IPtoMAC(destination) == null)
-//					arpRequest(destination);
-//				do {
-//					if (IPtoMAC(destination) != null)
-//					{
-//						f = ports[0].sendFrame(IPtoMAC(destination), Frame.IPv4, new ICMPpacket(ports[0].getIPv4().getAddress(), destination, ICMPpacket.Type.ECHO, 0));
-//					}
-//					else
-//					{
-//						time += 1;
-//					}
-//					try {
-//						sleep(10);
-//					} catch (InterruptedException e) {
-//						// TODO Auto-generated catch block
-//						e.printStackTrace();
-//					}
-//				} while (time < 64);
-//				if (f != null && time < 64)
-//				{
-//					triggerSentListener(new NetEvent(temp, f, "IPv4 - ICMP", ACTION.SENT));
-//					//Frame pack = NIMs[0].getAppFrame(ProtocolNumbers.ICMP, 0);
-//					f = null;
-//					do {
-//						synchronized (getCurrent()) {
-//							try {
-//								getCurrent().wait();
-//							} catch (InterruptedException e) {
-//								// TODO Auto-generated catch block
-//								e.printStackTrace();
-//							}
-//						}
-//						f = getCurrent();
-//						if (f.getPayload() instanceof ICMPpacket && f.getDestMAC().equals(ports[0].getMacAdd()) 
-//								&& f.getPayload().getDestIP().equals(ports[0].getIPv4().getAddress()))
-//						{
-//							//((ICMPpacket) pack).getType();
-//							triggerReceiveListener(new NetEvent(temp, f, "IPv4 - ICMP", ACTION.RECEIVED));
-//						}
-//						else
-//						{
-//							f = null;
-//							time += 1;
-//						}
-//						try {
-//							sleep(10);
-//						} catch (InterruptedException e) {
-//							// TODO Auto-generated catch block
-//							e.printStackTrace();
-//						}
-//					} while (time < 64 && f == null);
-//				}
-//				else
-//				{
-//					triggerDropListener(new NetEvent(temp, f, "IPv4 - ICMP", ACTION.DROPPED));
-//				}
-//			}
-//		});
 		t.start();
 		System.out.println("Ping ran");
 	}
@@ -200,7 +141,6 @@ public class Computer extends Device {
 			arpRequest(destination);
 		System.out.println("ARP request over");
 		do {
-			System.out.println("Waiting for arp reply");
 			if (IPtoMAC(destination) != null)
 			{
 				f = ports[0].sendFrame(IPtoMAC(destination), Frame.IPv4,
@@ -209,6 +149,7 @@ public class Computer extends Device {
 			}
 			else
 			{
+				System.out.println("Waiting for arp reply");
 				time += 1;
 			}
 			try {
@@ -323,7 +264,6 @@ public class Computer extends Device {
 	
 	@Override
 	public void run() {
-		super.run();
 		// TODO Auto-generated method stub
 		while (!isInterrupted())
 		{
@@ -338,11 +278,6 @@ public class Computer extends Device {
 			
 			if (fm != null){
 				current = fm.getFrame();
-//				if (!cacheContains(current.getPayload().getSourceIP(), current.getSourceMAC()))
-//				{
-//					arpCache.add(new ARPrecord(current.getSourceMAC(), current.getPayload().getSourceIP(), 
-//							fm.getPortIndex(), 300, true));
-//				}
 				getCurrent().notifyAll();
 				System.out.println("Notifying all waiting processes");
 				ProcessFrame(current, fm.getPortIndex());

@@ -28,7 +28,7 @@ public abstract class Port extends Thread {
 		this.bufferSize = bufferSize;
 		this.index = index;
 		parentDevice = p;	
-		macAdd = MACGenerator.BROADCAST;
+		macAdd = MACGenerator.generateMAC();
 		speed = 100000;
 	}
 	
@@ -39,7 +39,13 @@ public abstract class Port extends Thread {
 			if (!sendQueue.isEmpty())
 			{
 				try {
-					oppo.ReceiveFrame(sendQueue.take());
+					if (oppo != null)
+						oppo.ReceiveFrame(sendQueue.take());
+					else
+					{
+						sendQueue.take();
+						System.out.println("Opposite port is null");
+					}
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -47,18 +53,27 @@ public abstract class Port extends Thread {
 			}
 			
 			
-			Frame f = recvQueue.poll();
-			if (f != null)
+			Frame f = null; 
+			if (!recvQueue.isEmpty())
 			{
-				if (!f.getDestMAC().equals(macAdd))
-				{
-					//the frame is not for this
-					frameIsNotForThis(f);
+				try {
+					f = recvQueue.take();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
 				}
-				else
+				if (f != null)
 				{
-					//the frame is for this
-					frameIsForThis(f);
+					if (!f.getDestMAC().equals(macAdd))
+					{
+						//the frame is not for this
+						frameIsNotForThis(f);
+					}
+					else
+					{
+					//	the frame is for this
+						frameIsForThis(f);
+					}	
 				}
 			}
 			

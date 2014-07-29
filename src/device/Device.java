@@ -16,7 +16,7 @@ public abstract class Device extends Thread {
 	protected Port[] ports = null;
 	protected ArrayList<Thread> threads = null;
 
-	public Device(String name/*, int mod*/, int ports, int bufferSize){
+	public Device(String name, int ports, int bufferSize){
 		this.devName = name;
 		this.ports = new Port[ports];
 		this.history = new ArrayList<String>();
@@ -27,15 +27,16 @@ public abstract class Device extends Thread {
 		initPorts(bufferSize);
 	}
 	
-	protected abstract void initPorts(int bufferSize);
-	
-	@Override
-	public void run()
-	{
+	protected void initPorts(int bufferSize){
 		for (Port p : ports)
 		{
 			p.start();
 		}
+	}
+	
+	@Override
+	public void run()
+	{
 	}
 	@Override
 	public void interrupt()
@@ -66,12 +67,7 @@ public abstract class Device extends Thread {
 	
 	protected synchronized void receiveFrame(Frame f, int port)
 	{
-		try {
-			incoming.put(new FrameMovement((short)port, f));
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		incoming.offer(new FrameMovement((short)port, f));
 	}
 	
 	protected void triggerReceiveListener(NetEvent e)

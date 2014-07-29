@@ -35,6 +35,7 @@ public class Switch extends Device {
 				}
 			};
 		}
+		super.initPorts(bufferSize);
 	}
 	
 	private void Broadcast(Frame f, int sourcePort)
@@ -87,7 +88,6 @@ public class Switch extends Device {
 
 	@Override
 	public void run() {
-		super.run();
 		// TODO Auto-generated method stub
 		while(!isInterrupted())
 		{
