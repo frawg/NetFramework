@@ -33,11 +33,13 @@ public class Computer extends Device {
 			ports[i] = new Port(this, bufferSize, (short)i) {
 				@Override
 				public void frameIsNotForThis(Frame f) {
-					if (f.getSourceMAC().equals(MACGenerator.BROADCAST))
+					System.out.println(devName + " port" + getIndex() + ": " + "Frame is not for this");
+					if (f.getDestMAC().equals(MACGenerator.BROADCAST))
 						frameIsForThis(f);
 				}
 				@Override
 				public void frameIsForThis(Frame f) {
+					System.out.println(devName + " port" + getIndex() + ": " + "Frame is for this");
 					receiveFrame(f, getIndex());
 				}
 			};
@@ -52,10 +54,18 @@ public class Computer extends Device {
 		return null;
 	}
 	
-	private String IPtoMAC(String ip){
-		for (int i = 0; i < arpCache.size(); i++)
-			if (arpCache.get(i).equals(ip))
-				return arpCache.get(i).getMacAdd();
+	private synchronized String IPtoMAC(String ip){
+//		for (int i = 0; i < arpCache.size(); i++)
+//			if (arpCache.get(i).equals(ip))
+//			{
+		for (ARPrecord r : arpCache)
+		{
+			if (r.getIP().equals(ip))
+			{
+				System.out.println(devName + " ARP cache record found for " + ip + " to " + r.getMacAdd());
+				return r.getMacAdd();
+			}
+		}
 		return null;
 	}
 	
@@ -81,7 +91,7 @@ public class Computer extends Device {
 		return false;
 	}
 	
-	private void updateMAC(String ip, String mac){
+	private void updateMACofIP(String ip, String mac){
 		for (ARPrecord a : arpCache)
 		{
 			if (a.getIP().equals(ip))
@@ -92,7 +102,7 @@ public class Computer extends Device {
 		}
 	}
 	
-	private void updateIP(String mac, String ip){
+	private void updateIPofMAC(String mac, String ip){
 		for (ARPrecord a : arpCache)
 		{
 			if (a.getIP().equals(mac))
@@ -106,11 +116,13 @@ public class Computer extends Device {
 	private void arpRequest(String ip){
 		ports[0].sendFrame(MACGenerator.BROADCAST, Frame.ARP, 
 				new ARPpacket(ports[0].getIPv4().getAddress(), ip, ports[0].getMacAdd(), MACGenerator.BROADCAST, Frame.IPv4, ARPpacket.OPERATION.REQUEST, (short)255));
+		System.out.println("ARP request sent");
 	}
 	
 	private void arpReply(String ip, String mac){
 		ports[0].sendFrame(mac, Frame.ARP, 
 				new ARPpacket(ports[0].getIPv4().getAddress(), ip, ports[0].getMacAdd(), mac, Frame.IPv4, ARPpacket.OPERATION.REPLY, (short)255));
+		System.out.println("ARP reply sent");
 	}
 	
 	public void ping(final String destination)
@@ -141,6 +153,7 @@ public class Computer extends Device {
 			arpRequest(destination);
 		System.out.println("ARP request over");
 		do {
+			//System.out.println(IPtoMAC(destination));
 			if (IPtoMAC(destination) != null)
 			{
 				f = ports[0].sendFrame(IPtoMAC(destination), Frame.IPv4,
@@ -230,24 +243,31 @@ public class Computer extends Device {
 				{
 					System.out.println("ARP IPv4");
 					if (!cacheContains(f.getPayload().getSourceIP(), f.getSourceMAC()))
-						if (hasIP(f.getPayload().getSourceIP()))
+//						if (hasIP(f.getPayload().getSourceIP()))
+//						{
+//							System.out.println(devName + " ARP cache has record for ip:" + f.getPayload().getSourceIP());
+//							updateMACofIP(f.getPayload().getSourceIP(), f.getSourceMAC());
+//						}
+//						else if (hasMAC(f.getSourceMAC()))
+//						{
+//							System.out.println(devName + " ARP cache has record for mac:" + f.getSourceMAC());
+//							updateIPofMAC(f.getSourceMAC(), f.getPayload().getSourceIP());
+//						}
+//						else // does not exist
 						{
-							updateMAC(f.getPayload().getSourceIP(), f.getSourceMAC());
-						}
-						else if (hasMAC(f.getSourceMAC()))
-						{
-							updateIP(f.getSourceMAC(), f.getPayload().getSourceIP());
-						}
-						else // does not exist
-						{
+							System.out.println(devName + " ARP cache added record for " + f.getPayload().getSourceIP() + " to " + f.getSourceMAC());
 							arpCache.add(new ARPrecord(f.getSourceMAC(), f.getPayload().getSourceIP(), (short)p, 1800, true));
 						}
+					else 
+					{
+						System.out.println(devName + " ARP cache record exist for " + f.getPayload().getSourceIP() + " to " + f.getSourceMAC());
+					}
 					
 					if (pack.getOperation() == ARPpacket.OPERATION.REQUEST)
 					{
 						System.out.println("ARP request");
 						arpReply(f.getPayload().getSourceIP(), f.getSourceMAC());
-
+ 
 						triggerReceiveListener(new NetEvent(this, f, "ARP request", ACTION.RECEIVED));
 					}
 					else if (pack.getOperation() == ARPpacket.OPERATION.REPLY)
@@ -255,6 +275,7 @@ public class Computer extends Device {
 						System.out.println("ARP reply");
 						triggerReceiveListener(new NetEvent(this, f, "ARP reply", ACTION.RECEIVED));
 					}
+					System.out.println(IPtoMAC(f.getPayload().getSourceIP()));
 				}
 			}
 		}
@@ -269,6 +290,7 @@ public class Computer extends Device {
 		{
 			FrameMovement fm = null;
 			try {
+				System.out.println("Awaiting for incoming frame");
 				fm = incoming.take();
 				System.out.println("There is an incoming frame");
 			} catch (InterruptedException e) {
@@ -278,7 +300,10 @@ public class Computer extends Device {
 			
 			if (fm != null){
 				current = fm.getFrame();
-				getCurrent().notifyAll();
+				synchronized(getCurrent())
+				{
+					getCurrent().notifyAll();
+				}
 				System.out.println("Notifying all waiting processes");
 				ProcessFrame(current, fm.getPortIndex());
 			}			

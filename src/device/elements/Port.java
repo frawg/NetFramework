@@ -36,11 +36,15 @@ public abstract class Port extends Thread {
 	{
 		while (!isInterrupted())
 		{
+//			System.out.println(parentDevice.getDeviceName() + " port" + getIndex() + " send cycle start");
 			if (!sendQueue.isEmpty())
 			{
 				try {
 					if (oppo != null)
+					{
 						oppo.ReceiveFrame(sendQueue.take());
+						System.out.println("Frame sent from " + parentDevice.getDeviceName() + " port" + getIndex() + " to " + oppo.getParent().getDeviceName() + " port" + oppo.getIndex());
+					}
 					else
 					{
 						sendQueue.take();
@@ -52,12 +56,13 @@ public abstract class Port extends Thread {
 				}
 			}
 			
-			
+//			System.out.println(parentDevice.getDeviceName() + " port" + getIndex() + " send cycle over, receive cycle start");
 			Frame f = null; 
 			if (!recvQueue.isEmpty())
 			{
 				try {
 					f = recvQueue.take();
+					System.out.println(parentDevice.getDeviceName() + " port" + getIndex() + " receive queue not empty");
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -71,12 +76,12 @@ public abstract class Port extends Thread {
 					}
 					else
 					{
-					//	the frame is for this
+						//the frame is for this
 						frameIsForThis(f);
 					}	
 				}
 			}
-			
+//			System.out.println(parentDevice.getDeviceName() + " port" + getIndex() + " receive cycle over");
 			try {
 				sleep(0, sleepTime());
 			} catch (InterruptedException e) {
@@ -90,13 +95,19 @@ public abstract class Port extends Thread {
 	public abstract void frameIsNotForThis(Frame f);
 	
 	public synchronized void ReceiveFrame(Frame f){
-		System.out.println("Frame " + f.getEtherType() + " receive");
 		if (recvQueue.size() < bufferSize)
-			if (!recvQueue.offer(f))
+		{
+			if (recvQueue.offer(f))
 			{
-				System.out.println("Frame " + f.getEtherType() + " dropped at port");
+				System.out.println("Frame " + f.getEtherType() + " received on " + parentDevice.getDeviceName() + " port" + getIndex());
 				// frame is dropped 
 			}
+			else
+				System.out.println("Frame " + f.getEtherType() + " dropped at port");
+		}
+		else
+			System.out.println("Frame " + f.getEtherType() + " dropped at port");
+		
 	}
 
 	public synchronized void setIPv4(String add, String gateway, String subnet){
@@ -126,7 +137,6 @@ public abstract class Port extends Thread {
 	
 	public void sendFrame(Frame f)
 	{
-		System.out.println("Frame prep to send");
 		sendQueue.offer(f);
 	}
 	

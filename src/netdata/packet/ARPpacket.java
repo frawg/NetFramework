@@ -13,6 +13,9 @@ public class ARPpacket extends Packet{
 	
 	public ARPpacket(String sourceip, String destip, String sourceMAC, String destMAC, int type, OPERATION op, short TTL) {
 		super(sourceip, destip, TTL, null);
+		
+		this.sourceMAC = sourceMAC;
+		this.destMAC = destMAC;
 		this.type = type;
 		this.arpOp = op;
 		// TODO Auto-generated constructor stub
@@ -20,4 +23,7 @@ public class ARPpacket extends Packet{
 	
 	public int getProtocolType() { return type; }
 	public OPERATION getOperation() { return arpOp; }
+	public String getSourceMAC() { return sourceMAC; }
+	public String getDestinationMAC() { return destMAC; }
+	
 }
