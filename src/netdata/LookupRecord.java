@@ -1,32 +1,50 @@
 package netdata;
 
+import java.util.Date;
+
 public class LookupRecord {
-	public enum Type{ STATIC, DYNAMIC };
 	private String ip;
-	private Type type;
+	private boolean type;
 	private short portID;
-	private int TTL;
+	private Date TTL;
 	
-	public LookupRecord(String ip, Type type, short portID){
+	public LookupRecord(String ip, short portID, int seconds, boolean type){
 		this.ip = ip;
 		this.type = type;
 		this.portID = portID;
-		this.TTL = 64;
+		this.TTL = new Date(System.currentTimeMillis() + (seconds * 1000));
 	}
 	
 	public String getIp() { return ip; }
-	public Type getType() { return type; }
+	public boolean isDynamic() { return type; }
 	public short getPortID() { return portID; }
-	
-	public void refTTL(){ this.TTL = 64; }
-	public Boolean updTTL(){ 
-		if (TTL < 1)
-			return false;
-		else
+
+	public boolean UpdateAge(int seconds)
+	{
+		if (!isExpired() && type)
 		{
-			this.TTL -= 1;
+			TTL = new Date(System.currentTimeMillis() + (seconds * 1000));
 			return true;
 		}
+		else if (!type)
+			return true;
+		else
+			return false;
 	}
-	public int getTTL(){ return this.TTL; }
+	
+	public boolean isExpired(){
+		if (type)
+		{
+			if (TTL.before(new Date(System.currentTimeMillis())))
+			{
+				return true;
+			}
+			else 
+				return false;
+		}
+		else
+		{
+			return false;
+		}
+	}
 }

@@ -39,20 +39,15 @@ public abstract class Port extends Thread {
 //			System.out.println(parentDevice.getDeviceName() + " port" + getIndex() + " send cycle start");
 			if (!sendQueue.isEmpty())
 			{
-				try {
-					if (oppo != null)
-					{
-						oppo.ReceiveFrame(sendQueue.take());
-						System.out.println("Frame sent from " + parentDevice.getDeviceName() + " port" + getIndex() + " to " + oppo.getParent().getDeviceName() + " port" + oppo.getIndex());
-					}
-					else
-					{
-						sendQueue.take();
-						System.out.println("Opposite port is null");
-					}
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+				if (oppo != null)
+				{
+					oppo.ReceiveFrame(sendQueue.poll());
+					System.out.println("Frame sent from " + parentDevice.getDeviceName() + " port" + getIndex() + " to " + oppo.getParent().getDeviceName() + " port" + oppo.getIndex());
+				}
+				else
+				{
+					sendQueue.poll();
+//					System.out.println("Opposite port is null");
 				}
 			}
 			
@@ -63,10 +58,7 @@ public abstract class Port extends Thread {
 				try {
 					f = recvQueue.take();
 					System.out.println(parentDevice.getDeviceName() + " port" + getIndex() + " receive queue not empty");
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
+				} catch (InterruptedException e) {}
 				if (f != null)
 				{
 					if (!f.getDestMAC().equals(macAdd))
@@ -84,10 +76,7 @@ public abstract class Port extends Thread {
 //			System.out.println(parentDevice.getDeviceName() + " port" + getIndex() + " receive cycle over");
 			try {
 				sleep(0, sleepTime());
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+			} catch (InterruptedException e) {}
 		}
 	}
 	
@@ -142,14 +131,6 @@ public abstract class Port extends Thread {
 	
 	private int sleepTime() { return (int)(((double)(64 + 20) / (double)speed) * 1000 * 1000 * 1000); } // convert to micro then nano
 	
-//	public boolean setConnection(Connection conn){
-//		if (isConnected())
-//			return false;
-//		else
-//			this.conn = conn;
-//		return true;
-//	}
-	
 	public boolean hasAppPacket(int n)
 	{
 		for (Frame f : recvQueue)
@@ -188,20 +169,5 @@ public abstract class Port extends Thread {
 		return null;
 	}
 	
-//	public void SendFrame(Frame f){
-//		oppo.ReceiveFrame(f);
-//		if (conn != null)
-//		{
-//			conn.sentToOpposite(f, this);
-//			return true;
-//		}
-//		else
-//			return false;
-//	}
-	
-	public boolean isConnected(){ 
-		if (oppo /*conn*/ != null)
-			return true;
-		return false;
-	}
+	public boolean isConnected(){ return (oppo /*conn*/ != null); }
 }

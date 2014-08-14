@@ -7,58 +7,20 @@ import device.elements.Port;
 
 public class Router extends Device {
 
-public Router(String addr, String gateway, String subnet, String name,
-			int portNum, Type type) {
-		super(addr, gateway, subnet, name, portNum, type);
+	public Router(String name, int portNum, int bufferSize) {
+		super(name, portNum, bufferSize);
 		// TODO Auto-generated constructor stub
 	}
 
-//	@Override
-//	public ArrayList<Port> getPorts() {
-//		// TODO Auto-generated method stub
-//		return null;
-//	}
-//
-//	@Override
-//	public void setPorts(ArrayList<Port> ports) {
-//		// TODO Auto-generated method stub
-//		
-//	}
-
 	@Override
-	public String getMacAdd() {
+	public boolean setPortConnection(int i, Port p) {
 		// TODO Auto-generated method stub
-		return null;
+		return false;
 	}
 
 	@Override
-	public void setMacAdd(String macAdd) {
+	protected void initPorts(int bufferSize) {
 		// TODO Auto-generated method stub
 		
 	}
-
-	@Override
-	public String getName() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public void setName(String name) {
-		// TODO Auto-generated method stub
-		
-	}
-
-//	@Override
-//	public short getType() {
-//		// TODO Auto-generated method stub
-//		return 0;
-//	}
-//
-//	@Override
-//	public void setType(short type) {
-//		// TODO Auto-generated method stub
-//		
-//	}
-
 }

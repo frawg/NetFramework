@@ -25,9 +25,12 @@ public abstract class Device extends Thread {
 		threads = new ArrayList<Thread>();
 		
 		initPorts(bufferSize);
+		startPorts();
 	}
 	
-	protected void initPorts(int bufferSize){
+	protected abstract void initPorts(int bufferSize);
+	
+	private void startPorts() {
 		for (Port p : ports)
 		{
 			p.start();

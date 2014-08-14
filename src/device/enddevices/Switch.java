@@ -35,7 +35,6 @@ public class Switch extends Device {
 				}
 			};
 		}
-		super.initPorts(bufferSize);
 	}
 	
 	private void Broadcast(Frame f, int sourcePort)

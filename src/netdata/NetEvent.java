@@ -29,6 +29,7 @@ public class NetEvent {
 	public String getSourceMAC() { return fr.getSourceMAC(); }
 	public String getAction() { return act.toString(); }
 	public Device getSource() { return source; }
+	public int getFrameType() { return fr.getEtherType(); }
 	
 	public boolean isSameFrame(Frame f)
 	{

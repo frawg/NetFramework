@@ -17,13 +17,8 @@ public class Hub extends Device {
 		for (int i = 0; i < ports.length; i++)
 		{
 			ports[i] = new Port(this, bufferSize, (short) i) {
-				
 				@Override
-				public void frameIsNotForThis(Frame f) {
-					// TODO Auto-generated method stub
-					//receiveFrame(f);
-					receiveFrame(f, getIndex());
-				}
+				public void frameIsNotForThis(Frame f) { receiveFrame(f, getIndex()); }
 				@Override
 				public void frameIsForThis(Frame f) {} //there will never be a frame meant for this.
 			};
@@ -32,17 +27,13 @@ public class Hub extends Device {
 	
 	@Override
 	public void run() {
-		// TODO Auto-generated method stub
 		super.run();
 		while(!isInterrupted())
 		{
 			FrameMovement fm = null;
 			try {
 				fm = incoming.take();
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+			} catch (InterruptedException e) { }
 			if (fm != null)
 			{
 				ProcessFrame(fm.getFrame(), fm.getPortIndex());
@@ -51,22 +42,16 @@ public class Hub extends Device {
 	}
 
 	private synchronized void ProcessFrame(Frame f, short port) {
-		for (int i = 0; i < ports.length; i++)
+		for (short i = 0; i < ports.length; i++)
 		{
-			if (ports[i] != null && i != port)
+			if (ports[i].isConnected() && i != port)
 				ports[i].sendFrame(f);
 		}
 	}
 
 	@Override
-	public boolean setPortConnection(int i, Port p) {
-		// TODO Auto-generated method stub
-		return false;
-	}
+	public boolean setPortConnection(int i, Port p) { return ports[i].setOppo(p); }
 
 	@Override
-	public int totalPorts() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
+	public int totalPorts() { return ports.length; }
 }
